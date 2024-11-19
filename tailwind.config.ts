@@ -12,6 +12,10 @@ export default {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      fontFamily: {
+        pacifico: ['Pacifico', 'cursive'],
+        nunito: ['Nunito', 'sans-serif'], // Add Nunito font here
+      },
     },
   },
   plugins: [],
