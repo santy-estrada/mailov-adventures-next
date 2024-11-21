@@ -1,6 +1,6 @@
 'use client';
 
-import '@/styles/global.css';
+import '@/styles/globals.css';
 import React from 'react';
 import Navbar from '@/components/NonLoggedNavbar';
 import Footer from '@/components/Footer';
@@ -16,7 +16,7 @@ export default function MainPage() {
       </h1>
 
 
-        <div className="w-full max-w-3xl h-[500px]">
+        <div className="w-full max-w-2xl h-[400px]">
           <Pet src="https://sketchfab.com/models/faef9fe5ace445e7b2989d1c1ece361c/embed" />
         </div>
 

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 const NonLoggedNavbar = () => (
-  <nav className="bg-[#FEEC37] text-white p-4">
+  <nav className="bg-[#FEEC37] text-white p-4 font-nunito">
     <div className="container mx-auto flex justify-between items-center">
       <Link href="/" className="text-xl font-bold text-[#FF77B7]">
         Mailov Adventures
