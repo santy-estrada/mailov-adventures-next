@@ -4,7 +4,7 @@ import { setContext } from '@apollo/client/link/context';
 
 // HTTP and Auth Links
 const httpLink = new HttpLink({
-  uri: 'http://localhost:3005/graphql',
+  uri: process.env.GRAPHQL_URL,
   credentials: 'same-origin',
 });
 
