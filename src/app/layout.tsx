@@ -1,13 +1,15 @@
-import '../styles/globals.css';
+// app/layout.tsx
+'use client';
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+import { ApolloProvider } from '@apollo/client';
+import { apolloClient } from '../lib/apolloClient'; // Singleton instance
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
-      <body>{children}</body>
+    <html lang="en">
+      <body>
+        <ApolloProvider client={apolloClient}>{children}</ApolloProvider>
+      </body>
     </html>
   );
 }

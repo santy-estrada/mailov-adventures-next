@@ -5,6 +5,9 @@ import '@/styles/globals.css';
 import Link from 'next/link';
 import Navbar from '@/components/NonLoggedNavbar';
 import Footer from '@/components/Footer';
+import { useMutation, gql } from '@apollo/client';
+import { CREATE_USER_MUTATION } from '@/api/user';
+import { useRouter } from 'next/router';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -13,15 +16,17 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
+  
   // Regular expression for email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [createUser, { loading, error, data }] = useMutation(CREATE_USER_MUTATION);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     const newErrors: { [key: string]: string } = {};
-
+  
     // Validate name
     if (!name) newErrors.name = 'Name is required.';
     // Validate email
@@ -29,13 +34,25 @@ export default function RegisterPage() {
     // Validate password
     if (!password) newErrors.password = 'Password is required.';
     if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match.';
-
+  
     setErrors(newErrors);
-
+  
     if (Object.keys(newErrors).length === 0) {
-      alert('Registration successful!');
+      try {
+        // Call the mutation with the correct variable name
+        await createUser({
+          variables: {
+            createUserInput: { name, email, password },
+          },
+        });
+        alert('Registration successful!');
+        window.location.href = '/auth';
+      } catch (err) {
+        console.error('Registration Error:', err);
+      }
     }
   };
+  
 
   return (
     <div className="flex flex-col min-h-screen">

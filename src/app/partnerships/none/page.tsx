@@ -1,3 +1,5 @@
+'use client';
+
 import Navbar from '@/components/LoggedNavbar';
 import Footer from '@/components/Footer';
 import '@/styles/globals.css';
@@ -30,7 +32,7 @@ const NoPartnershipsPage: React.FC = () => {
           </div>
         </div>
         <div className="mt-6">
-          <Link href={'/Partnerships/new'}
+          <Link href={'/partnerships/new'}
             className="bg-[#D4C200] text-white px-6 py-2 rounded hover:bg-[#C5B200] transition-colors"
             onClick={() => alert('Create new relationship clicked!')}
           >

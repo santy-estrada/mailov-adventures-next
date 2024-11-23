@@ -1,17 +1,10 @@
 import React from 'react';
+import { DateIdea } from '@/types/date';
 
 interface DateIdeaCardProps {
-  dateIdea: {
-    dateAdded: string;
-    id: string;
-    idea: string;
-    category: string;
-    review: string | null;
-    enthusiasm: number;
-    done: boolean;
-  };
-  onEdit: (dateIdea: DateIdeaCardProps['dateIdea']) => void;
-  onToggleDone: (id: string) => void; // Make sure this is defined here
+  dateIdea: DateIdea; // Use your defined type for better consistency
+  onEdit: (dateIdea: DateIdea) => void;
+  onToggleDone: (id: string) => void;
 }
 
 const DateIdeaCard: React.FC<DateIdeaCardProps> = ({ dateIdea, onEdit, onToggleDone }) => {
@@ -25,7 +18,7 @@ const DateIdeaCard: React.FC<DateIdeaCardProps> = ({ dateIdea, onEdit, onToggleD
         <strong>Enthusiasm:</strong> {dateIdea.enthusiasm}
       </p>
       <p className="text-[#654321] mt-2">
-        <strong>Date Added:</strong> {dateIdea.dateAdded}
+        <strong>Date Added:</strong> {new Date(dateIdea.dateAdded).toLocaleDateString()}
       </p>
       {dateIdea.review && (
         <p className="text-[#654321] mt-2">
@@ -44,10 +37,12 @@ const DateIdeaCard: React.FC<DateIdeaCardProps> = ({ dateIdea, onEdit, onToggleD
           Edit
         </button>
 
-        {/* Mark as Done Button */}
+        {/* Toggle Done Button */}
         <button
-          className={`px-3 py-1 rounded ${dateIdea.done ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'} text-white`}
-          onClick={() => onToggleDone(dateIdea.id)} // Ensure onToggleDone is invoked with correct ID
+          className={`px-3 py-1 rounded ${
+            dateIdea.done ? 'bg-red-400 hover:bg-red-500' : 'bg-green-500 hover:bg-green-600'
+          } text-white`}
+          onClick={() => onToggleDone(dateIdea.id.toString())}
         >
           {dateIdea.done ? 'Mark as Not Done' : 'Mark as Done'}
         </button>

@@ -5,12 +5,15 @@ import '@/styles/globals.css';
 import Link from 'next/link';
 import Navbar from '@/components/LoggedNavbar'; // Updated to logged navbar
 import Footer from '@/components/Footer';
+import { useMutation } from '@apollo/client';
+import { CREATE_ACTIVITY } from '@/api/activity';
 
 const AddActivityPage = () => {
   const [activityType, setActivityType] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [createActivity, { loading, error, data }] = useMutation(CREATE_ACTIVITY);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newErrors: { [key: string]: string } = {};
@@ -21,8 +24,32 @@ const AddActivityPage = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      alert('Activity added successfully!');
-      // You can add logic here to save the activity to the backend or state.
+      const userId = sessionStorage.getItem('userId'); // Retrieve userId from sessionStorage
+      if (!userId) {
+        alert('User is not logged in.');
+        return;
+      }
+
+      try {
+        // Call the mutation to create the activity
+        const response = await createActivity({
+          variables: {
+            createActivityInput: {
+              activityType,
+              userId: Number(userId), // Ensure userId is a number
+              partnershipIds: [Number(sessionStorage.getItem('partnershipId'))], // Retrieve partnershipId from sessionStorage
+            },
+          },
+        });
+
+        if (response.data) {
+          alert('Activity added successfully!');
+          // Optionally, redirect or update state here
+        }
+      } catch (e) {
+        console.error(e);
+        alert('An error occurred while adding the activity.');
+      }
     }
   };
 
@@ -56,7 +83,7 @@ const AddActivityPage = () => {
           </form>
           <p className="mt-4 text-center text-gray-600">
             Want to go back?{' '}
-            <Link href="/Activities" className="text-[#FF77B7] hover:underline">
+            <Link href="/activities" className="text-[#FF77B7] hover:underline">
               View Activities
             </Link>
           </p>

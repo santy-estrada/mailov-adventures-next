@@ -5,25 +5,25 @@ import '@/styles/globals.css';
 import Link from 'next/link';
 import Navbar from '@/components/LoggedNavbar'; // Updated to logged navbar
 import Footer from '@/components/Footer';
+import { useMutation } from '@apollo/client';
+import { CREATE_DATE_IDEA } from '@/api/date';
 
 const AddDateIdeaPage = () => {
   const [idea, setIdea] = useState('');
   const [category, setCategory] = useState('');
   const [enthusiasm, setEnthusiasm] = useState<number | ''>('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [createDateIdea] = useMutation(CREATE_DATE_IDEA);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const partnershipId = sessionStorage.getItem('partnershipId'); // Assuming partnershipId is stored in sessionStorage
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newErrors: { [key: string]: string } = {};
 
-    // Validate idea
     if (!idea) newErrors.idea = 'Idea is required.';
-
-    // Validate category
     if (!category) newErrors.category = 'Category is required.';
-
-    // Validate enthusiasm
     if (enthusiasm === '') newErrors.enthusiasm = 'Enthusiasm is required.';
     else if (enthusiasm < 0 || enthusiasm > 999)
       newErrors.enthusiasm = 'Enthusiasm must be between 0 and 999.';
@@ -31,12 +31,28 @@ const AddDateIdeaPage = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      alert('Date Idea added successfully!');
-      // You can add logic here to save the date idea to the backend or state.
-      // Reset fields
-      setIdea('');
-      setCategory('');
-      setEnthusiasm('');
+      try {
+        // Construct the input object
+        const createDateIdeaInput = {
+          idea,
+          category,
+          enthusiasm,
+          userId: Number(sessionStorage.getItem('userId')), // Make sure userId is stored in sessionStorage
+          partnershipIds: partnershipId ? [Number(partnershipId)] : [], // Add partnershipId if it exists
+        };
+
+        // Create the date idea
+        await createDateIdea({ variables: { createDateIdeaInput } });
+
+        alert('Date Idea added successfully!');
+
+        // Reset fields
+        setIdea('');
+        setCategory('');
+        setEnthusiasm('');
+      } catch (error) {
+        console.error('Error adding date idea:', error);
+      }
     }
   };
 

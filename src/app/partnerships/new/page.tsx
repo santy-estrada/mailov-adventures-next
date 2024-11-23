@@ -57,8 +57,8 @@ const NewPartnershipPage: React.FC = () => {
           </form>
           <p className="mt-4 text-center text-gray-600">
             Want to go back?{' '}
-            <Link href="/Partnerships" className="text-[#FF77B7] hover:underline">
-              View Partnerships
+            <Link href="/" className="text-[#FF77B7] hover:underline">
+              Go home
             </Link>
           </p>
         </div>

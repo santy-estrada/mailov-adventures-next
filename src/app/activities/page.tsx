@@ -1,63 +1,46 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/LoggedNavbar';
 import Footer from '@/components/Footer';
 import '@/styles/globals.css';
 import ActivityCard from '@/components/ActivityCard';
 import Link from 'next/link';
-
-interface Activity {
-  id: string;
-  activityType: string;
-  user: string;
-  dateCompleted: string | null;
-  active: boolean; // Add active property to control visibility
-}
+import { Activity } from '@/types/activity';
+import { useMutation, useQuery } from '@apollo/client';
+import { DELETE_ACTIVITY, GET_ACTIVITIES_BY_PARTNERSHIP, UPDATE_ACTIVITY } from '@/api/activity';
 
 const ActivitiesPage: React.FC = () => {
-  // Sample activity data with "active" property
-  const initialActivities: Activity[] = [
-    {
-      id: '1',
-      activityType: 'Adventure',
-      user: 'User1',
-      dateCompleted: '2024-10-01',
-      active: true, // Active by default
-    },
-    {
-      id: '2',
-      activityType: 'Romantic',
-      user: 'User2',
-      dateCompleted: null,
-      active: true,
-    },
-    {
-      id: '3',
-      activityType: 'Casual',
-      user: 'User1',
-      dateCompleted: '2024-11-01',
-      active: true,
-    },
-  ];
-
-  const activityTypes = ['Adventure', 'Romantic', 'Casual'];
-
-  const [filters, setFilters] = useState({
-    activityType: 'All',
-  });
-
-  const [allActivities, setAllActivities] = useState<Activity[]>(initialActivities);
   const [editMode, setEditMode] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
+  const [partnershipId, setPartnershipId] = useState<string | null>(null);
 
-  // Filter activities based on the selected filters and active status
-  const filteredActivities = allActivities.filter((activity) => {
-    const matchesActivityType =
-      filters.activityType === 'All' || activity.activityType === filters.activityType;
-    const isActive = activity.active; // Only show active activities
-    return matchesActivityType && isActive;
+
+  // Check if running on the client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedPartnershipId = sessionStorage.getItem('partnershipId');
+      setPartnershipId(storedPartnershipId);
+    }
+  }, []);
+
+  // Apollo useQuery to fetch activities based on partnershipId
+  const { loading, error, data } = useQuery(GET_ACTIVITIES_BY_PARTNERSHIP, {
+    variables: { partnershipId: Number(partnershipId) },
+    skip: !partnershipId, // Skip the query if no partnershipId
   });
+
+  const [deleteActivity] = useMutation(DELETE_ACTIVITY);
+  const [updateActivity] = useMutation(UPDATE_ACTIVITY);
+
+  // Set activities from fetched data
+  useEffect(() => {
+    if (data) {
+      setActivities(data.activitiesForPartnership);
+    }
+  }, [data]);
+
+  const [activities, setActivities] = useState<Activity[]>([]);
 
   const handleEdit = (activity: Activity) => {
     setCurrentActivity(activity);
@@ -67,32 +50,54 @@ const ActivitiesPage: React.FC = () => {
     }, 100);
   };
 
-  const handleSave = (updatedActivity: Activity) => {
-    setAllActivities((prev) =>
-      prev.map((activity) =>
-        activity.id === updatedActivity.id ? updatedActivity : activity
-      )
-    );
-    setEditMode(false);
-    setCurrentActivity(null);
+  const handleSave = async (updatedActivity: Activity) => {
+    try {
+      const { data } = await updateActivity({
+        variables: {
+          id: Number(updatedActivity.id),
+          updateActivityInput: {
+            activityType: updatedActivity.activityType,
+            userId: Number(updatedActivity.user.id), 
+            date: updatedActivity.date,  // Ensure this handles null
+          },
+        },
+      });
+  
+      // Update activities in the UI after saving
+      setActivities((prev) =>
+        prev.map((activity) =>
+          activity.id === data.updateActivity.id ? data.updateActivity : activity
+        )
+      );
+      setEditMode(false);
+      setCurrentActivity(null);
+    } catch (error) {
+      console.error('Error updating activity:', error);
+    }
   };
+  
 
-  const handleDelete = (activity: Activity) => {
+  const handleDelete = async (activity: Activity) => {
     const confirmDelete = window.confirm('Are you sure you want to delete this activity?');
     if (confirmDelete) {
-      const updatedActivity = { ...activity, active: false }; // Deactivate instead of deleting
-      setAllActivities((prev) =>
-        prev.map((a) => (a.id === activity.id ? updatedActivity : a))
-      );
-      alert('Activity deactivated successfully!');
+      try {
+        // Call the delete mutation
+        const { data } = await deleteActivity({
+          variables: { id: Number(activity.id) },
+        });
+
+        // Remove the deleted activity from the UI
+        setActivities((prev) => prev.filter((a) => a.id !== data.deleteActivity.id));
+        alert('Activity deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting activity:', error);
+      }
     }
   };
 
-  const handleClearFilters = () => {
-    setFilters({
-      activityType: 'All',
-    });
-  };
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error loading activities</p>;
+
 
   return (
     <div className="flex flex-col min-h-screen bg-[#B1D690]">
@@ -104,50 +109,23 @@ const ActivitiesPage: React.FC = () => {
           {/* Add Activity Button */}
           <div className="text-right mb-4 space-x-4">
             <Link
-              href="/Activities/new"
+              href="/activities/new"
               className="bg-[#FF77B7] text-white px-4 py-2 rounded-md hover:bg-[#FF27B7] transition-colors"
             >
               Add Activity
             </Link>
-
-            <button
-              className="bg-[#FEEC37] text-[#654321] px-4 py-2 rounded-md hover:bg-[#FFA24C] transition-colors"
-              onClick={handleClearFilters}
-            >
-              Clear Filters
-            </button>
-          </div>
-
-          {/* Filters */}
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <select
-              className="p-2 border rounded bg-white"
-              value={filters.activityType}
-              onChange={(e) => setFilters({ ...filters, activityType: e.target.value })}
-            >
-              <option value="All">All Activity Types</option>
-              {activityTypes.map((activityType, index) => (
-                <option key={index} value={activityType}>
-                  {activityType}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Activity Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {filteredActivities.length === 0 ? (
-              <p className="text-[#654321]">No activities match your filters.</p>
-            ) : (
-              filteredActivities.map((activity) => (
+              {activities.map((activity) => (
                 <ActivityCard
                   key={activity.id}
                   activity={activity}
                   onEdit={handleEdit}
                   onDelete={handleDelete} // Pass delete handler to card
                 />
-              ))
-            )}
+              ))}
           </div>
 
           {/* Edit Activity Form */}
@@ -164,20 +142,26 @@ const ActivitiesPage: React.FC = () => {
                   <label className="block mb-1">Activity Type</label>
                   <input
                     type="text"
-                    value={currentActivity.activityType}
+                    value={currentActivity.activityType || ''}
                     onChange={(e) =>
-                      setCurrentActivity({ ...currentActivity, activityType: e.target.value })
+                      setCurrentActivity({
+                        ...currentActivity,
+                        activityType: e.target.value,
+                      })
                     }
                     className="p-2 border rounded w-full"
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block mb-1">User</label>
+                  <label className="block mb-1">User Name</label>
                   <input
                     type="text"
-                    value={currentActivity.user}
+                    value={currentActivity.user?.name || ''}
                     onChange={(e) =>
-                      setCurrentActivity({ ...currentActivity, user: e.target.value })
+                      setCurrentActivity({
+                        ...currentActivity,
+                        user: { ...currentActivity.user, name: e.target.value },
+                      })
                     }
                     className="p-2 border rounded w-full"
                   />
@@ -186,9 +170,9 @@ const ActivitiesPage: React.FC = () => {
                   <label className="block mb-1">Date Completed</label>
                   <input
                     type="date"
-                    value={currentActivity.dateCompleted || ''}
+                    value={currentActivity.date || ''}
                     onChange={(e) =>
-                      setCurrentActivity({ ...currentActivity, dateCompleted: e.target.value })
+                      setCurrentActivity({ ...currentActivity, date: e.target.value })
                     }
                     className="p-2 border rounded w-full"
                   />

@@ -5,25 +5,51 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/NonLoggedNavbar';
+import { LOGIN_MUTATION } from '@/api/login';
+import { GET_USER_PARTNERSHIP } from '@/api/user';
+import { useMutation } from '@apollo/client';
+import { LoginDto } from '@/types/login';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [emailError, setEmailError] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [login, { loading }] = useMutation(LOGIN_MUTATION);
 
   // Regular expression for validating an email address
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailRegex.test(email)) {
-      setEmailError('Please enter a valid email address.');
+      setLoginError('Please enter a valid email address.');
       return;
     }
-    setEmailError('');
-    alert('Login form submitted successfully!');
+    setLoginError('');
+    try {
+      const input: LoginDto = { email, password };
+      const { data } = await login({
+        variables: { input },
+      });
+      if (data?.login?.accessToken && data?.login?.userId) {
+        console.log('Login successful:', data.login.accessToken);
+        
+        // Store accessToken and userId in sessionStorage
+        sessionStorage.setItem('accessToken', data.login.accessToken);
+        sessionStorage.setItem('userId', data.login.userId.toString()); 
+        console.log('User ID:', sessionStorage.getItem('userId'));
+        console.log('Access Token:', sessionStorage.getItem('accessToken'));
+        alert('Logged in successfully!');
+        
+        window.location.href = '/partnerships'; // Redirect to the partnerships page
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setLoginError(error.message || 'Login failed. Please check your credentials and try again.');
+    }
   };
+
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -44,7 +70,7 @@ export default function LoginPage() {
                 className="mt-1 px-3 py-2 border rounded w-full focus:outline-none focus:border-[#FFA24C]"
                 placeholder="Enter your email"
               />
-              {emailError && <p className="text-[#FF77B7] text-sm mt-1">{emailError}</p>}
+              {loginError && <p className="text-[#FF77B7] text-sm mt-1">{loginError}</p>}
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">

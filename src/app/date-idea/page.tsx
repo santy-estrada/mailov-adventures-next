@@ -1,71 +1,46 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/LoggedNavbar';
 import Footer from '@/components/Footer';
 import '@/styles/globals.css';
 import DateIdeaCard from '@/components/DateIdeaCard';
 import Link from 'next/link';
+import { DateIdea } from '@/types/date';
+import { useMutation, useQuery } from '@apollo/client';
+import { ADD_REVIEW, GET_DATE_IDEAS_PER_PARTNERSHIP, SET_AS_DONE } from '@/api/date';
 
-interface DateIdea {
-  id: string;
-  idea: string;
-  category: string;
-  review: string | null;
-  enthusiasm: number;
-  done: boolean;
-  user: string;
-  dateAdded: string;
-}
 
 const DateIdeasPage: React.FC = () => {
-  // Sample date idea data
-  const initialDateIdeas: DateIdea[] = [
-    {
-      id: '1',
-      idea: 'Go for a hike in the mountains.',
-      category: 'Adventure',
-      review: null,
-      enthusiasm: 8,
-      done: false,
-      user: 'User1',
-      dateAdded: '2024-01-01',
-    },
-    {
-      id: '2',
-      idea: 'Dinner at a fancy restaurant.',
-      category: 'Romantic',
-      review: 'Amazing food and ambiance.',
-      enthusiasm: 7,
-      done: true,
-      user: 'User2',
-      dateAdded: '2024-02-01',
-    },
-    {
-      id: '3',
-      idea: 'Watch a movie at the cinema.',
-      category: 'Casual',
-      review: null,
-      enthusiasm: 5,
-      done: false,
-      user: 'User1',
-      dateAdded: '2024-03-01',
-    },
-  ];
-
-  const categories = ['Adventure', 'Romantic', 'Casual'];
-
+  const { loading, error, data } = useQuery(GET_DATE_IDEAS_PER_PARTNERSHIP, {
+    variables: { partnershipId: Number(sessionStorage.getItem('partnershipId')) }, // Replace `1` with the actual partnership ID
+  });
   const [filters, setFilters] = useState({
     category: 'All',
     done: 'All',
     enthusiasm: 'desc', // 'asc' or 'desc' for sorting
   });
 
-  const [allDateIdeas, setAllDateIdeas] = useState<DateIdea[]>(initialDateIdeas);
+  const [allDateIdeas, setAllDateIdeas] = useState<DateIdea[]>([]);
   const [editMode, setEditMode] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
   const [currentDateIdea, setCurrentDateIdea] = useState<DateIdea | null>(null);
+  const [setAsDone] = useMutation(SET_AS_DONE);
+  const [addReview] = useMutation(ADD_REVIEW);
 
-  // Filter date ideas based on the selected filters
+  useEffect(() => {
+    if (data?.dateIdeasForPartnership) {
+      setAllDateIdeas(data.dateIdeasForPartnership);
+      
+      // Extract unique categories from the date ideas
+      const uniqueCategories = [
+        ...new Set(data.dateIdeasForPartnership.map((idea: DateIdea) => idea.category)),
+      ];
+      setCategories(uniqueCategories as string[]);
+    }
+  }, [data]);
+
+  // Filter and sort the date ideas
   const filteredDateIdeas = allDateIdeas
     .filter((idea) => {
       const matchesCategory = filters.category === 'All' || idea.category === filters.category;
@@ -96,33 +71,61 @@ const DateIdeasPage: React.FC = () => {
     }, 100);
   };
 
-  const handleSave = (updatedDateIdea: DateIdea) => {
-    setAllDateIdeas((prev) =>
-      prev.map((idea) => (idea.id === updatedDateIdea.id ? updatedDateIdea : idea))
-    );
-    setEditMode(false);
-    setCurrentDateIdea(null);
-  };
+  const handleSave = async (updatedDateIdea: DateIdea) => {
+    try {
+      const { data } = await addReview({
+        variables: {
+          id: updatedDateIdea.id, // Pass the ID of the DateIdea
+          updateDateIdeaInput: {
+            review: updatedDateIdea.review, // Pass the updated review
+            // Include other fields if needed, like category, enthusiasm
+          },
+        },
+      });
 
-  const handleDelete = (dateIdea: DateIdea) => {
-    const confirmDelete = window.confirm('Are you sure you want to delete this date idea?');
-    if (confirmDelete) {
-      const updatedDateIdea = { ...dateIdea, done: false }; // Mark as inactive instead of deletion
-      setAllDateIdeas((prev) =>
-        prev.map((idea) => (idea.id === dateIdea.id ? updatedDateIdea : idea))
-      );
-      alert('Date Idea deactivated successfully!');
+      if (data.updateDateIdea) {
+        // Update the local state to reflect the updated review
+        setAllDateIdeas((prev) =>
+          prev.map((idea) =>
+            idea.id === updatedDateIdea.id ? { ...idea, review: data.updateDateIdea.review } : idea
+          )
+        );
+        setEditMode(false);
+        setCurrentDateIdea(null);
+      }
+    } catch (error) {
+      console.error('Error saving review:', error);
     }
   };
 
-  // Toggle the 'done' status of a date idea
-  const handleToggleDone = (id: string) => {
-    setAllDateIdeas((prev) =>
-      prev.map((idea) =>
-        idea.id === id ? { ...idea, done: !idea.done } : idea
-      )
-    );
+  const handleToggleDone = async (id: string) => {
+    const dateIdea = allDateIdeas.find((idea) => idea.id.toString() === id);
+
+    if (!dateIdea) return;
+
+    try {
+      const { data } = await setAsDone({
+        variables: {
+          id: Number(dateIdea.id), // Pass the id
+          updateDateIdeaInput: { done: !dateIdea.done }, // Toggle done status
+        },
+      });
+
+      if (data.updateDateIdea) {
+        setAllDateIdeas((prev) =>
+          prev.map((idea) =>
+            idea.id === dateIdea.id ? { ...idea, done: data.updateDateIdea.done } : idea
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling done status:', error);
+    }
   };
+
+
+  if (loading) return <p>Loading date ideas...</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#B1D690]">
@@ -134,7 +137,7 @@ const DateIdeasPage: React.FC = () => {
           {/* Add Date Idea Button */}
           <div className="text-right mb-4 space-x-4">
             <Link
-              href="/DateIdea/new"
+              href="/date-idea/new"
               className="bg-[#FF77B7] text-white px-4 py-2 rounded-md hover:bg-[#FF27B7] transition-colors"
             >
               Add Date Idea
