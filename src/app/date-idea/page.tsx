@@ -12,8 +12,18 @@ import { ADD_REVIEW, GET_DATE_IDEAS_PER_PARTNERSHIP, SET_AS_DONE } from '@/api/d
 
 
 const DateIdeasPage: React.FC = () => {
+  const [partnershipId, setPartnershipId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const storedId = sessionStorage.getItem('partnershipId');
+    if (storedId) {
+      setPartnershipId(Number(storedId));
+    }
+  }, []);
+
   const { loading, error, data } = useQuery(GET_DATE_IDEAS_PER_PARTNERSHIP, {
-    variables: { partnershipId: Number(sessionStorage.getItem('partnershipId')) }, // Replace `1` with the actual partnership ID
+    skip: partnershipId === null, // Prevent running the query before partnershipId is set
+    variables: { partnershipId },
   });
   const [filters, setFilters] = useState({
     category: 'All',

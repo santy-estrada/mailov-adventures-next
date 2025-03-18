@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '@/styles/globals.css';
 import Link from 'next/link';
-import Navbar from '@/components/LoggedNavbar'; // Updated to logged navbar
+import Navbar from '@/components/LoggedNavbar';
 import Footer from '@/components/Footer';
 import { useMutation } from '@apollo/client';
 import { CREATE_DATE_IDEA } from '@/api/date';
@@ -13,9 +13,20 @@ const AddDateIdeaPage = () => {
   const [category, setCategory] = useState('');
   const [enthusiasm, setEnthusiasm] = useState<number | ''>('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [userId, setUserId] = useState<number | null>(null);
+  const [partnershipId, setPartnershipId] = useState<number | null>(null);
   const [createDateIdea] = useMutation(CREATE_DATE_IDEA);
 
-  const partnershipId = sessionStorage.getItem('partnershipId'); // Assuming partnershipId is stored in sessionStorage
+  // Fetch userId and partnershipId from sessionStorage on the client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUserId = sessionStorage.getItem('userId');
+      const storedPartnershipId = sessionStorage.getItem('partnershipId');
+
+      setUserId(storedUserId ? Number(storedUserId) : null);
+      setPartnershipId(storedPartnershipId ? Number(storedPartnershipId) : null);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,8 +48,8 @@ const AddDateIdeaPage = () => {
           idea,
           category,
           enthusiasm,
-          userId: Number(sessionStorage.getItem('userId')), // Make sure userId is stored in sessionStorage
-          partnershipIds: partnershipId ? [Number(partnershipId)] : [], // Add partnershipId if it exists
+          userId,
+          partnershipIds: partnershipId ? [partnershipId] : [],
         };
 
         // Create the date idea
@@ -110,13 +121,14 @@ const AddDateIdeaPage = () => {
             <button
               type="submit"
               className="w-full bg-[#FEEC37] text-[#654321] py-2 rounded hover:bg-[#FFA24C] transition-colors"
+              disabled={userId === null} // Disable button until userId is available
             >
               Add Date Idea
             </button>
           </form>
           <p className="mt-4 text-center text-gray-600">
             Want to go back?{' '}
-            <Link href="/DateIdea" className="text-[#FF77B7] hover:underline">
+            <Link href="/date-idea" className="text-[#FF77B7] hover:underline">
               View Date Ideas
             </Link>
           </p>

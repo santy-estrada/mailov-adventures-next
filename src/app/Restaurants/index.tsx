@@ -5,17 +5,7 @@ import Footer from '@/components/Footer';
 import '@/styles/globals.css';
 import RestaurantCard from '@/components/RestaurantCard';
 import Link from 'next/link';
-
-interface Restaurant {
-  id: string;
-  name: string;
-  location: string;
-  cuisineType: string;
-  dateAdded: string;
-  extraInfo: string;
-  visited: boolean;
-  active: boolean; // Add the active property
-}
+import { Restaurant } from '@/types/restaurant';
 
 interface RestaurantsPageProps {
   locations: string[]; // Locations from backend or provided data
